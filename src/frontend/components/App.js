@@ -1,48 +1,88 @@
-
-import logo from './logo.png';
-import './App.css';
- 
+import logo from "./logo.png";
+import "./App.css";
+import { ethers } from "ethers";
+import { useState } from "react";
+import MarketplaceAddressFile from "../contractsData/Marketplace-address.json";
+import NftAddressFile from "../contractsData/NFT-address.json";
+import MarketplaceAbi from "../contractsData/Marketplace.json";
+import NftAbi from "../contractsData/NFT.json";
+import Navigation from "./Navbar";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Home from "./Home";
+import Create from "./Create";
+import MyListedItems from "./MyListedItems";
+import MyPurchaseItems from "./MyPurchaseItems";
+import { Spinner } from "react-bootstrap";
 function App() {
+  const [accountConnected, setAccountConnected] = useState(null);
+  const [loading, setloading] = useState(true);
+  const [NftContract, setNftContract] = useState({});
+  const [MarketplaceContract, setMarketplaceContract] = useState({});
+  const web3Handler = async () => {
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const accounts = await window.ethereum.request({
+      method: "eth_requestAccounts",
+    });
+    setAccountConnected(accounts[0]);
+    const signer = provider.getSigner();
+  };
+  const loadContracts = async (signer) => {
+    const marketplaceContract = await ethers.Contract(
+      MarketplaceAddressFile.address,
+      MarketplaceAbi.abi,
+      signer
+    );
+    setMarketplaceContract(marketplaceContract);
+    const nftContract = await ethers.Contract(
+      NftAddressFile.address,
+      NftAbi.abi,
+      signer
+    );
+    setNftContract(nftContract);
+    setloading(false);
+  };
   return (
-    <div>
-      <nav className="navbar navbar-dark fixed-top bg-dark flex-md-nowrap p-0 shadow">
-        <a
-          className="navbar-brand col-sm-3 col-md-2 ms-3"
-          href="http://www.dappuniversity.com/bootcamp"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Dapp University
-        </a>
-      </nav>
-      <div className="container-fluid mt-5">
-        <div className="row">
-          <main role="main" className="col-lg-12 d-flex text-center">
-            <div className="content mx-auto mt-5">
-              <a
-                href="http://www.dappuniversity.com/bootcamp"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <img src={logo} className="App-logo" alt="logo"/>
-              </a>
-              <h1 className= "mt-5">Dapp University Starter Kit</h1>
-              <p>
-                Edit <code>src/frontend/components/App.js</code> and save to reload.
-              </p>
-              <a
-                className="App-link"
-                href="http://www.dappuniversity.com/bootcamp"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                LEARN BLOCKCHAIN <u><b>NOW! </b></u>
-              </a>
-            </div>
-          </main>
-        </div>
+    <BrowserRouter>
+      <div>
+        <Navigation web3Handler={web3Handler} account={accountConnected} />
+        {loading ? (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              minHeight: "80vh",
+            }}
+          >
+            <Spinner animation="border" style={{ display: "flex" }} />
+            <p className="mx-3 my-0">Awaiting Metamask Connection...</p>
+          </div>
+        ) : (
+          <Routes>
+            <Route
+              exact
+              path="/"
+              element={
+                <Home marketplace={MarketplaceContract} nft={NftContract} />
+              }
+            />
+            <Route
+              exact
+              path="/create"
+              element={
+                <Create marketplace={MarketplaceContract} nft={NftContract} />
+              }
+            />
+            <Route exact path="/my-listed-items" element={<MyListedItems />} />
+            <Route
+              exact
+              path="/my-purchase-items"
+              element={<MyPurchaseItems />}
+            />
+          </Routes>
+        )}
       </div>
-    </div>
+    </BrowserRouter>
   );
 }
 
